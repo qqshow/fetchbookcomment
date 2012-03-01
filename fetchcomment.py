@@ -15,7 +15,7 @@ class GetDangdangDoubanAmazonUrl():
             #解析当当网的url
             myID = self.getDangdangUrl(isbn) 
             if myID:
-                ddUrl = 'http://comm.dangdang.com/reviewlist/' + myID +'/showall/?sort=useful&setcount=20'
+                ddUrl = 'http://comm.dangdang.com/review/reviewlist.php?pid=' + myID
             else:
                 print 'can not parse the dangdang\'s ID at ISBN ' + isbn
                 ddUrl =''
@@ -107,7 +107,7 @@ class GetDangdangDoubanAmazonUrl():
 
     def getDangdangCom(self,isbn,Url):
         content = self.getContent(Url)
-        rTotal = re.compile('<em>(\d+?)</em>')
+        rTotal = re.compile('(\d+?)人参与评分')
         m = rTotal.findall(content)
         if m:
             totalPage = (int(m[0]) / 20) + 1
@@ -115,18 +115,20 @@ class GetDangdangDoubanAmazonUrl():
                 totalPage = 5
         else:
             totalPage = 1
+        print totalPage
         fileName = isbn + '_Dangdang.txt'
         #r = re.compile("<div class='center_border'><div class='appear_time'>.+?</div><p>(.+?)</p></div>", re.I|re.U|re.S)
-        r = re.compile("<div class='center_border'><div class='appear_time'>(.+?)</div><p>(.+?)</p></div>", re.I|re.U|re.S)
+        r = re.compile('</span><a class="name" href="[^"]+" target="_blank">([^<]+)</a><span>([^<]+)</span>', re.I|re.U|re.S)
         moreCommPage = '<a target="_blank" href="http://click.linktech.cn/?m=dangdang&a=A100013618&l=99999&l_cd1=0&l_cd2=1&tu=' + \
-                           urllib.quote(Url) + '">' + '当当网详细评论'.decode('utf-8').encode('gbk') + '</a>'
+                           urllib.quote(Url) + '">' + '当当网详细评论'+ '</a>'
         for i in range(1, totalPage+1):
-            content = self.getContent(Url + '&page=' + str(i))
+            content = self.getContent(Url + '&pc=20&fc=0&sort=1&page_index=' + str(i))
             m = r.findall(content)
             file = open(fileName,'a')
             
+            
             for n in m:
-                file.write('<span class="userN">' + '当当网友'.decode('utf-8').encode('gbk') + '</span><br><br>' + \
+                file.write('<span class="userN">' + '当当网友' + '</span><br><br>' + \
                            n[1].strip() + moreCommPage + '<br><br>' + n[0] +'\n**********\n')
                 moreCommPage = ''
             file.close()
@@ -134,7 +136,7 @@ class GetDangdangDoubanAmazonUrl():
                 
     def getDoubanCom(self,isbn,Url):
         content = self.getContent(Url)
-        rTotal = re.compile('共(\d+?)条')
+        rTotal = re.compile('>(\d+)</span>人评价</a>')
         m = rTotal.findall(content)
         if m:
             totalPage = (int(m[0]) / 25) + 1
@@ -144,7 +146,7 @@ class GetDangdangDoubanAmazonUrl():
             totalPage = 1
         fileName = isbn + '_Douban.txt'
         #r = re.compile("<div id='review_\d+?_short'>(.+?)<[aspan]+? class=", re.I|re.U|re.S)
-        r = re.compile("<div id='review_\d+?_short'>(.+?)<[as].+? class=\"pl\">(.+?) ", re.I|re.U|re.S)
+        r = re.compile("<div id='review_\d+?_short'>([^<]+)<", re.I|re.U|re.S)
         moreCommPage = '<a target="_blank" href="' + Url + '">豆瓣网详细评论</a>'
         for i in range(1, totalPage+1):
             content = self.getContent(Url + '?start=' + str((i-1) * 25))
@@ -152,8 +154,8 @@ class GetDangdangDoubanAmazonUrl():
             file = open(fileName,'a')
             
             for n in m:
-                file.write('<span class="userN">豆瓣网友</span><br><br>' + n[0].strip() + \
-                           moreCommPage + '<br><br>' + n[1] + '\n**********\n')
+                file.write('<span class="userN">豆瓣网友</span><br><br>' + n.decode('utf-8').encode('gbk') + \
+                           moreCommPage + '<br><br>' + 'xxx' + '\n**********\n')
                 moreCommPage = ''
                 
             file.close()
@@ -162,27 +164,28 @@ class GetDangdangDoubanAmazonUrl():
     
 
     def getDangdangUrl(self, isbn):
-        content = self.getContent('http://search.dangdang.com/search.aspx?selectcatalog=&key=' + isbn + '&search=%CB%D1+%CB%F7&catalog=&SearchFromTop=1')
-        r = re.compile("<h2><a href='http://search.dangdang.com/rd.asp.id=(\d+?)&")
+        content = self.getContent('http://searchb.dangdang.com/?key=' + isbn)
+        r = re.compile('name="Name"><a href="http://product.dangdang.com/product.aspx\?product_id=(\d+)"')
         m = r.findall(content)
         for n in m:
             return n
-        self.errorSave('can not parse Douban\'s Url at http://search.dangdang.com/search.aspx?selectcatalog=&key=' + isbn + '&search=%CB%D1+%CB%F7&catalog=&SearchFromTop=1 \n')
+        self.errorSave('can not parse DangDang\'s Url at http://search.dangdang.com/search.aspx?selectcatalog=&key=' + isbn + '&search=%CB%D1+%CB%F7&catalog=&SearchFromTop=1 \n')
+        print  'can not parse DangDang\'s usrl'
         return ''
 
     def getDoubanUrl(self, isbn):
-        content = self.getContent('http://www.douban.com/subject_search?search_text=' + isbn )
-        r = re.compile('<a href="/subject/(\d+?)/')
+        content = self.getContent('http://book.douban.com/subject_search?search_text=' + isbn + '&cat=1001' )
+        r = re.compile('href="http://book.douban.com/subject/(\d+?)/')
         m = r.findall(content)
         for n in m:
             return n
-        self.errorSave('can not parse dangdang\'s Url at http://www.douban.com/subject_search?search_text=' + isbn + '\n')
+        self.errorSave('can not parse douban\'s Url at http://www.douban.com/subject_search?search_text=' + isbn + '\n')
         return ''
                 
     def getISBN(self,url):
         content = self.getContent(url)
 		#r = re.compile('条形码：</span>(\d+?)<br />')
-        r = re.compile('条形码:</b>\s*(\d+)</li>')
+        r = re.compile('<b>ISBN:</b>\s*(\d+)[,<]')
         m = r.findall(content)
         for n in m:
             return n
